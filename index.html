@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Akasa Air - Seat Selection</title>
+
+<style>
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body { font-family: 'Segoe UI', sans-serif; background: #fff; color: #222; }
+
+  button.skip, #skip, #skip-btn, .skip-btn, [data-action="skip"] { display: none !important; }
+
+
+
+  /* ── FLIGHT SEGMENT TABS ── */
+
+  .flight-tabs-bar { background: #fff8f2; border-bottom: 2px solid #e8630a; display: flex; overflow-x: auto; }
+
+  .flight-tab {
+
+    flex: 1; min-width: 140px; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #888;
+
+    background: transparent; border: none; cursor: pointer; border-bottom: 3px solid transparent;
+
+    margin-bottom: -2px; white-space: nowrap; text-align: center;
+
+    transition: color .15s, border-color .15s, background .15s;
+
+  }
+
+  .flight-tab:hover { color: #e8630a; background: #fff3ec; }
+
+  .flight-tab.active { color: #e8630a; font-weight: 700; border-bottom: 3px solid #e8630a; background: #fff; }
+
+  .flight-tab.done::after { content: ' ✓'; color: #22a06b; }
+
+
+
+  /* ── SECTOR INFO BAR ── */
+
+  .sector-bar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+  .sector-info { display: flex; flex-direction: column; gap: 2px; }
+
+  .sector-route { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+
+  .sector-pill { background: #fff8f2; color: #c05000; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; margin-top: 2px; }
+
+
+
+  /* ── PAX BAR ── */
+
+  .pax-bar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 10px 20px; display: flex; align-items: center; gap: 12px; overflow-x: auto; }
+
+  .seat-count { font-size: 12px; font-weight: 600; color: #333; border-right: 1px solid #ddd; padding-right: 14px; min-width: 80px; line-height: 1.5; flex: 0 0 auto; }
+
+  .pax-card { border: 1.5px solid #e8630a; border-radius: 8px; padding: 8px 14px; background: #fff; cursor: pointer; transition: all .15s; flex: 0 0 auto; min-width: 160px; }
+
+  .pax-card:hover { background: #fff8f2; }
+
+  .pax-card.active-pax { background: #fff3ec; }
+
+  .pax-name { font-size: 13px; font-weight: 700; color: #222; }
+
+  .pax-action { font-size: 11px; color: #999; margin-top: 2px; }
+
+  .pax-card.has-seat .pax-action { display: none; }
+
+  .pax-seat-row { display: none; margin-top: 4px; }
+
+  .pax-card.has-seat .pax-seat-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+
+  .pax-seat-num { font-size: 12px; font-weight: 700; color: #1a1a2e; }
+
+  .pax-seat-detail { font-size: 10px; color: #777; }
+
+  .pax-change { font-size: 10px; color: #5c0fd9; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+
+
+
+  /* ── PROMO / LEGEND ── */
+
+  .promo-bar { background: #fdf4ec; border-bottom: 1px solid #f2dcc8; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  .promo-text { font-size: 14px; color: #1a1a2e; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+  .promo-text .info-dot { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #e8630a; color: #e8630a; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+
+  .legend { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+
+  .leg-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #1a1a2e; }
+
+  .leg-swatch { width: 16px; height: 16px; border-radius: 4px; border: 2px solid; background: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1; }
+
+
+
+  /* ── SEATMAP AREA ── */
+
+  .main { background: #fff; min-height: 300px; }
+
+  .seatmap-area { width: 100%; overflow-x: auto; overflow-y: hidden; padding: 28px 20px 18px; }
+
+  .aircraft-wrap { display: inline-block; width: max-content; }
+
+
+
+  #loading { text-align: center; padding: 40px; color: #888; font-size: 14px; }
+
+  #error-box { display: none; margin: 20px; padding: 20px; background: #fff8f2; border: 1.5px solid #e8630a; border-radius: 8px; font-size: 13px; line-height: 1.8; color: #333; }
+
+  #error-box strong { color: #c00; font-size: 15px; display: block; margin-bottom: 8px; }
+
+
+
+  /* ── VERTICAL CABIN: rows stacked top→bottom, letters A B C | D E F across ── */
+
+  .cabin { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+
+
+
+  .seat-row, .col-headers {
+
+    display: grid;
+
+    grid-template-columns: 34px repeat(3, 54px) 24px repeat(3, 54px) 34px;
+
+    column-gap: 4px;
+
+    align-items: center;
+
+    position: relative;
+
+  }
+
+  .col-headers { margin-bottom: 4px; }
+
+  .col-hdr { text-align: center; font-size: 14px; font-weight: 700; color: #444; }
+
+
+
+  .row-num { text-align: center; font-size: 14px; font-weight: 600; color: #444; }
+
+  .aisle-gap { width: 24px; }
+
+
+
+  /* exit bars sit in the left/right gutters of an exit row and merge vertically */
+
+  .exit-slot { display: flex; align-items: center; justify-content: center; }
+
+  .exit-bar {
+
+    width: 30px; height: 48px; margin-bottom: -4px;
+
+    background: #c62828; color: #fff;
+
+    font-size: 10px; font-weight: 700; letter-spacing: .3px;
+
+    display: flex; align-items: center; justify-content: center;
+
+  }
+
+  .exit-bar.start { border-top-left-radius: 5px; border-top-right-radius: 5px; }
+
+  .exit-bar.end   { border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; height: 44px; margin-bottom: 0; }
+
+
+
+  /* ── SEAT ──
+
+     Matches the real seat button: border on top/right/left only (no bottom),
+
+     10px radius, with a thin flat color accent extending from the back edge. */
+
+  .seat {
+
+    --seat-accent: #d9d9d9; /* neutral default */
+
+    width: 54px; height: 44px; border-radius: 10px;
+
+    border-top: 1px solid #e5e4e7; border-right: 1px solid #e5e4e7; border-left: 1px solid #e5e4e7;
+
+    border-bottom: none;
+
+    font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+
+    cursor: pointer; text-align: center; line-height: 1.15; user-select: none;
+
+    background: #fff; color: #1a1a2e; position: relative;
+
+    transition: none;
+
+    overflow: visible;
+
+  }
+
+  /* Thin rear/back accent — always visible below the seat, matching the
+
+     website's seat accent after rotating the cabin orientation vertically. */
+
+  .seat::after {
+
+     content: '';
+
+     position: absolute;
+
+     left: 4px;
+
+     right: 4px;
+
+     bottom: -2px;
+
+     height: 2px;
+
+     background: var(--seat-accent);
+
+     border-radius: 0 0 7px 7px;
+
+     z-index: 0;
+
+     pointer-events: none;
+
+  }
+
+
+
+
+
+  /* recline-type accent color (the flat right-edge shadow) */
+
+  .s-std           { --seat-accent: #d9d9d9; }
+
+  .s-free          { --seat-accent: #d9d9d9; border-top-color: #2e9e5b; border-right-color: #2e9e5b; border-left-color: #2e9e5b; color: #1f7a45; }
+
+  .s-recliner      { --seat-accent: #d32f2f; color: #b71c1c; }
+
+  .s-non-reclining { --seat-accent: #d32f2f; color: #b71c1c; }
+
+
+
+  .s-occ     { border-color: #e2e2e2; background: #f3f4f6; color: #9aa0a6; cursor: not-allowed; font-size: 18px; --seat-accent: transparent; }
+
+  .s-blocked { border-color: #e2e2e2; background: #f3f4f6; color: #bbb; cursor: not-allowed; font-size: 18px; --seat-accent: transparent; }
+
+  .s-sel     { background: #1a73e8; border-color: #0d5cb6; color: #fff; --seat-accent: #0d5cb6; }
+
+  .s-empty   { background: transparent; border-color: transparent; cursor: default; pointer-events: none; --seat-accent: transparent; }
+
+
+
+  /* A+ is a BORDER-color modifier (top/right/left) so it layers on top of any
+
+     recline-type accent — an A+ recliner shows a gold border AND the blue
+
+     accent shadow at the same time. */
+
+  .seat.s-aplus { border-top-color: #c9a227; border-right-color: #c9a227; border-left-color: #c9a227; color: #a8791a; }
+
+  .seat.s-aplus.s-recliner,
+
+  .seat.s-aplus.s-non-reclining { color: #a8791a; }
+
+  .seat.s-sel, .seat.s-aplus.s-sel { color: #fff; }
+
+
+
+  /* A+ is a BORDER modifier so it can stack on top of any face,
+
+     including the recliner shadow-ring (A+ recliner = gold border + red glow). */
+
+  .seat.s-aplus { border-color: #c9a227; color: #a8791a; }
+
+  .seat.s-aplus.s-recliner { color: #a8791a; }
+
+  .seat.s-sel, .seat.s-aplus.s-sel { color: #fff; }
+
+
+
+  /* ── BOTTOM BAR ── */
+
+  .bottom-bar { background: #fff; border-top: 2px solid #e5e7eb; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; bottom: 0; z-index: 100; }
+
+  .price-info { display: flex; flex-direction: column; gap: 2px; }
+
+  .price-total { font-size: 20px; font-weight: 800; color: #e8630a; }
+
+  .action-area { display: flex; align-items: center; gap: 12px; }
+
+  .btn-action { border: none; padding: 10px 26px; border-radius: 5px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; white-space: nowrap; }
+
+  .btn-primary { background: #e8630a; color: #fff; }
+
+  .btn-primary:hover { background: #c95500; }
+
+  .btn-next { background: #1a73e8; color: #fff; }
+
+  .btn-next:hover { background: #1558b0; }
+
+
+
+  .seat-tooltip { position: fixed; background: #222; color: #fff; font-size: 11px; padding: 6px 10px; border-radius: 4px; pointer-events: none; z-index: 9999; display: none; white-space: nowrap; line-height: 1.6; }
+
+
+
+  @media (max-width: 768px) {
+
+    .cabin { gap: 5px; }
+
+    .seat-row, .col-headers { grid-template-columns: 26px repeat(3, 42px) 18px repeat(3, 42px) 26px; column-gap: 3px; }
+
+    .seat { width: 42px; height: 34px; font-size: 10px; border-radius: 7px; }
+
+    .row-num, .col-hdr { font-size: 11px; }
+
+    .aisle-gap { width: 18px; }
+
+    .exit-bar { width: 24px; height: 37px; font-size: 9px; margin-bottom: -3px; }
+
+    .exit-bar.end { height: 34px; margin-bottom: 0; }
+
+    .promo-text { font-size: 12px; }
+
+    .leg-item { font-size: 11px; }
+
+    .bottom-bar { padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
+
+    .btn-action { padding: 8px 14px; font-size: 12px; }
+
+  }
+
+  @media (max-width: 480px) {
+
+    .cabin { gap: 4px; }
+
+    .seat-row, .col-headers { grid-template-columns: 22px repeat(3, 36px) 14px repeat(3, 36px) 22px; column-gap: 2px; }
+
+    .seat { width: 36px; height: 30px; font-size: 9px; }
+
+    .aisle-gap { width: 14px; }
+
+    .exit-bar { width: 20px; height: 32px; margin-bottom: -2px; }
+
+    .exit-bar.end { height: 30px; margin-bottom: 0; }
+
+  }
+
+</style>
+
+</head>
+
+<body>
+
+
+
+<div class="flight-tabs-bar" id="flight-tabs-bar" style="display:none;"></div>
+
+
+
+<div class="sector-bar">
+
+  <div class="sector-info">
+
+    <div class="sector-route" id="sector-route">Loading...</div>
+
+    <span class="sector-pill" id="sector-flight">Flight details</span>
+
+  </div>
+
+</div>
+
+
+
+<div class="pax-bar" id="pax-bar">
+
+  <div class="seat-count" id="seat-count-display">0/0 Seats<br>selected</div>
+
+</div>
+
+
+
+<div class="promo-bar">
+
+  <span class="promo-text"><span class="info-dot">i</span> Enjoy generous legroom on our seats starting at just ₹150</span>
+
+  <div class="legend">
+
+    <div class="leg-item"><div class="leg-swatch" style="border-color:#c9a227;box-shadow:2px 0 0 0 #d9d9d9;"></div> A+</div>
+
+    <div class="leg-item"><div class="leg-swatch" style="border-color:#e5e4e7;box-shadow:0 3px 0 0 #d32f2f;"></div> Non-reclining</div>
+
+    <div class="leg-item"><div class="leg-swatch" style="border-color:#bfc3c8;background:#f3f4f6;color:#777;">✕</div> Occupied</div>
+
+    <div class="leg-item"><div class="leg-swatch" style="border-color:#2e9e5b;"></div> Free Seat</div>
+
+  </div>
+
+</div>
+
+
+
+<div class="main">
+
+  <div class="seatmap-area">
+
+    <div id="loading">Loading seat map…</div>
+
+    <div id="error-box"></div>
+
+    <div class="aircraft-wrap" id="seatmap-root" style="display:none;"></div>
+
+  </div>
+
+</div>
+
+
+
+<div class="bottom-bar">
+
+  <div class="price-info">
+
+    <div class="price-total" id="price-display">Loading...</div>
+
+  </div>
+
+  <div class="action-area">
+
+    <button class="btn-action btn-primary" id="confirm-btn" onclick="handleConfirm()">Confirm seat</button>
+
+  </div>
+
+</div>
+
+
+
+<div class="seat-tooltip" id="tooltip"></div>
+
+
+
+<script>
+
+const BASE_PRICE = 0;
+
+
+
+let passengerNames = [];
+
+let numPax = 3;
+
+let currentPaxId = 1;
+
+let currentFlightIdx = 0;
+
+let perFlightSeats = [];
+
+let allParsedMaps = [];
+
+let preferredSeats = [];
+
+let apiBaseUrl = '';
+
+let authToken = '';
+
+let qpApiKey = '';
+
+let qpSource = 'CHATBOTWEB';
+
+let journeyKeys = [];
+
+let passengerKeys = [];
+
+let customerNumber = '';
+
+let pnr = '';
+
+let tripSummary = '';
+
+let totalAmount = 0;
+
+let currencyCode = 'INR';
+
+let segmentMap = [];
+
+
+
+function showLoading(v) { document.getElementById('loading').style.display = v ? 'block' : 'none'; }
+
+function showError(html) {
+
+  const b = document.getElementById('error-box');
+
+  b.style.display = 'block'; b.innerHTML = html;
+
+}
+
+function showMap() { document.getElementById('seatmap-root').style.display = 'inline-block'; }
+
+function getQueryParam(name) { return new URLSearchParams(window.location.search).get(name) || ''; }
+
+
+
+
+
+function buildSeatMapPayload(raw) {
+
+  if (Array.isArray(raw?.data) && raw.data.length > 0) {
+
+    return raw.data;
+
+  }
+
+
+
+  return [raw];
+
+}
+
+
+
+
+
+async function fetchSeatMapFromApi() {
+
+  const headers = {
+
+    'Authorization': authToken,
+
+    'Content-Type': 'application/json',
+
+    'QP-BOT-API-KEY': qpApiKey,
+
+    'QP-BOT-SOURCE': qpSource
+
+  };
+
+  const response = await fetch(`${apiBaseUrl}/api/ibe/agents/seatmap`, { headers });
+
+  if (!response.ok) throw new Error(`Seatmap API failed (${response.status})`);
+
+  return response.json();
+
+}
+
+
+
+async function fetchPreferredSeatsFromApi() {
+
+  if (!customerNumber) return [];
+
+  const headers = {
+
+    'Authorization': authToken,
+
+    'QP-BOT-API-KEY': qpApiKey,
+
+    'QP-BOT-SOURCE': qpSource
+
+  };
+
+  const response = await fetch(`${apiBaseUrl}/api/ibe/agents/preferred-seats?customerNumber=${encodeURIComponent(customerNumber)}`, { headers });
+
+  if (!response.ok) return [];
+
+  const json = await response.json();
+
+  return Array.isArray(json?.data) ? json.data : [];
+
+}
+
+
+
+function isPreferredSeat(info, paxIndex) {
+
+  const paxKey = passengerKeys[paxIndex - 1] || '';
+
+  const seatCode = (info?.des || '').toUpperCase();
+
+  return preferredSeats.some(item => {
+
+    const preferredSeat = (item?.seat || '').toUpperCase();
+
+    const samePassenger = !paxKey || !item?.paxKey || item.paxKey === paxKey;
+
+    return samePassenger && preferredSeat && preferredSeat === seatCode;
+
+  });
+
+}
+
+
+
+async function loadAndRenderFromApi() {
+
+  showLoading(true);
+
+  try {
+
+    const seatMapResponse = await fetchSeatMapFromApi();
+
+    preferredSeats = await fetchPreferredSeatsFromApi();
+
+    const flightList = buildSeatMapPayload(seatMapResponse);
+
+    renderSeatMapData(flightList);
+
+    showLoading(false);
+
+    showMap();
+
+  } catch (err) {
+
+    showLoading(false);
+
+    showError(`<strong>⚠ Could not load seat map</strong> ${err.message}<br><br>
+
+      <b>Common fixes:</b><br>• Verify the bot passed a valid auth token and API base URL`);
+
+  }
+
+}
+
+
+
+function renderSeatMapData(flightList) {
+
+  const queryPassengerNames = getQueryParam('passenger_names');
+
+  if (queryPassengerNames) {
+
+    passengerNames = queryPassengerNames.split(',').map(n => n.trim()).filter(Boolean);
+
+  } else {
+
+    passengerNames = extractPassengerNames(flightList[0] || {});
+
+  }
+
+
+
+  numPax = passengerNames.length || 3;
+
+  if (passengerNames.length === 0) {
+
+    for (let i = 1; i <= numPax; i++) passengerNames.push(`Passenger ${i}`);
+
+  }
+
+
+
+  const tripLabels = tripSummary ? tripSummary.split('|').map(s => s.trim()) : [];
+
+
+
+  allParsedMaps = flightList.map((fd, fi) => {
+
+    perFlightSeats[fi] = {};
+
+    for (let p = 1; p <= numPax; p++) {
+
+      perFlightSeats[fi][p] = { seat: null, fee: 0, detail: '', unitKey: null };
+
+    }
+
+    return {
+
+      data: fd,
+
+      parsed: parseSeatMap(fd),
+
+      label: tripLabels[fi] || `Flight ${fi + 1}`,
+
+      flightNum: buildFlightNum(fd),
+
+      journeyKey: resolveJourneyKeyForFlight(fd, fi)
+
+    };
+
+  });
+
+
+
+  buildFlightTabs();
+
+  buildPaxCards();
+
+  switchToFlight(0);
+
+}
+
+
+
+function buildFlightNum(data) {
+
+  const availability = data?.seatMapAvailability ?? data;
+
+  const root = availability?.seatMap ?? availability;
+
+  return root?.name ? `Flight ${root.name}` : 'Flight details';
+
+}
+
+
+
+function buildFlightTabs() {
+
+  const bar = document.getElementById('flight-tabs-bar');
+
+  bar.innerHTML = '';
+
+  if (allParsedMaps.length <= 1) { bar.style.display = 'none'; return; }
+
+  bar.style.display = 'flex';
+
+  allParsedMaps.forEach((m, i) => {
+
+    const btn = document.createElement('button');
+
+    btn.className = 'flight-tab' + (i === 0 ? ' active' : '');
+
+    btn.id = `ftab-${i}`;
+
+    btn.textContent = m.label;
+
+    btn.onclick = () => switchToFlight(i);
+
+    bar.appendChild(btn);
+
+  });
+
+}
+
+
+
+function updateFlightTabs() {
+
+  allParsedMaps.forEach((_, i) => {
+
+    const btn = document.getElementById(`ftab-${i}`);
+
+    if (!btn) return;
+
+    btn.className = 'flight-tab' + (i === currentFlightIdx ? ' active' : '');
+
+    const seats = perFlightSeats[i] ?? {};
+
+    const allDone = Object.values(seats).every(s => s.seat !== null);
+
+    if (allDone && i !== currentFlightIdx) btn.classList.add('done');
+
+  });
+
+}
+
+
+
+function buildPaxCards() {
+
+  const bar = document.getElementById('pax-bar');
+
+  bar.innerHTML = `<div class="seat-count" id="seat-count-display">0/${numPax} Seats<br>selected</div>`;
+
+  for (let i = 1; i <= numPax; i++) {
+
+    const div = document.createElement('div');
+
+    div.className = 'pax-card' + (i === 1 ? ' active-pax' : '');
+
+    div.id = `pax-${i}`;
+
+    div.innerHTML = `
+
+      <div class="pax-name">${passengerNames[i - 1]}</div>
+
+      <div class="pax-action">Select seat</div>
+
+      <div class="pax-seat-row">
+
+        <div>
+
+          <div class="pax-seat-num" id="pax-${i}-seat"></div>
+
+          <div class="pax-seat-detail" id="pax-${i}-detail"></div>
+
+        </div>
+
+        <div class="pax-change">Change</div>
+
+      </div>`;
+
+    div.addEventListener('click', () => selectPax(i));
+
+    bar.appendChild(div);
+
+  }
+
+}
+
+
+
+function selectPax(i) {
+
+  currentPaxId = i;
+
+  document.querySelectorAll('.pax-card').forEach(c => c.classList.remove('active-pax'));
+
+  document.getElementById(`pax-${i}`)?.classList.add('active-pax');
+
+  refreshSeatVisuals();
+
+}
+
+
+
+function switchToFlight(idx) {
+
+  currentFlightIdx = idx;
+
+  currentPaxId = 1;
+
+  selectPax(1);
+
+  const m = allParsedMaps[idx];
+
+  document.getElementById('sector-route').textContent = m.label;
+
+  document.getElementById('sector-flight').textContent = m.flightNum;
+
+  renderSeatMap(m.parsed);
+
+  updateUIForFlight();
+
+  updateFlightTabs();
+
+  updateConfirmButton();
+
+}
+
+
+
+function updateUIForFlight() {
+
+  const seats = perFlightSeats[currentFlightIdx] ?? {};
+
+  const sel = Object.values(seats).filter(s => s.seat).length;
+
+  document.getElementById('seat-count-display').innerHTML = `${sel}/${numPax} Seats<br>selected`;
+
+
+
+  for (let i = 1; i <= numPax; i++) {
+
+    const card = document.getElementById(`pax-${i}`);
+
+    const sn = document.getElementById(`pax-${i}-seat`);
+
+    const sd = document.getElementById(`pax-${i}-detail`);
+
+    if (!card) continue;
+
+    const info = seats[i] ?? {};
+
+    if (info.seat) {
+
+      sn.textContent = info.seat;
+
+      sd.textContent = info.detail ?? '';
+
+      card.classList.add('has-seat');
+
+    } else {
+
+      sn.textContent = '';
+
+      sd.textContent = '';
+
+      card.classList.remove('has-seat');
+
+    }
+
+  }
+
+
+
+  let totalFee = 0;
+
+  perFlightSeats.forEach(fs => { Object.values(fs).forEach(p => { totalFee += p.fee; }); });
+
+  document.getElementById('price-display').textContent = currencyCode + ' ' + totalFee.toLocaleString('en-IN');
+
+}
+
+
+
+function updateConfirmButton() {
+
+  const btn = document.getElementById('confirm-btn');
+
+  const isLast = currentFlightIdx === allParsedMaps.length - 1;
+
+  if (!isLast) { btn.textContent = 'Next flight →'; btn.className = 'btn-action btn-next'; }
+
+  else { btn.textContent = 'Confirm seat'; btn.className = 'btn-action btn-primary'; }
+
+}
+
+
+
+function handleConfirm() {
+
+  const isLast = currentFlightIdx === allParsedMaps.length - 1;
+
+  if (!isLast) {
+
+    switchToFlight(currentFlightIdx + 1);
+
+    document.getElementById(`ftab-${currentFlightIdx}`)?.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+
+  } else {
+
+    confirmSeat();
+
+  }
+
+}
+
+
+
+/* ────────────────── PARSING ────────────────── */
+
+function parseSeatMap(data) {
+
+  // API returns seatMapAvailability and fees as siblings on each flight object.
+  const availability = data?.seatMapAvailability ?? data;
+  const root = availability?.seatMap ?? availability;
+  const decks = root?.decks ?? {};
+
+  const deck1 = decks['1'] ?? Object.values(decks)[0] ?? {};
+
+  const allUnits = [];
+
+  Object.values(deck1?.compartments ?? {}).forEach(comp => {
+
+    if (Array.isArray(comp.units)) allUnits.push(...comp.units);
+
+  });
+
+  if (allUnits.length === 0) throw new Error('No seat units found in JSON.');
+
+
+
+  // Seat category lists are siblings of seatMapAvailability in the API response.
+  const premiumSeatSet = new Set((data?.premiumSeats ?? []).map(x => String(x).toUpperCase()));
+  const premiumPlusSeatSet = new Set((data?.premiumPlusSeats ?? []).map(x => String(x).toUpperCase()));
+
+  // In this API response, fees are nested inside seatMapAvailability,
+  // not alongside it. Support both shapes for backward compatibility.
+  const feeRoot = data?.fees ?? availability?.fees ?? {};
+  const fees = {};
+  Object.values(feeRoot).forEach(paxFees => {
+    Object.entries(paxFees?.groups ?? {}).forEach(([groupKey, grp]) => {
+      const groupId = grp?.group ?? groupKey;
+      if (groupId == null || fees[groupId] != null) return;
+
+      // Display the base seat fee only. C27 and S27 are separate
+      // included-tax components and must not be added to the seat price.
+      const sfeFee = (grp?.fees ?? []).find(f => f?.code === 'SFE');
+      if (!sfeFee) return;
+
+      const sfeCharge = (sfeFee.serviceCharges ?? [])
+        .find(charge => charge?.code === 'SFE');
+      if (!sfeCharge) return;
+
+      fees[groupId] = Number(sfeCharge.amount || 0);
+    });
+  });
+
+
+
+  const hasProp = (u, code) => (u.properties ?? []).some(
+
+    p => String(p?.code ?? '').toUpperCase() === code.toUpperCase() &&
+
+         String(p?.value ?? '').toLowerCase() === 'true'
+
+  );
+
+
+
+  /* Recliner / non-reclining detection.
+
+     Widened so it works across the different property shapes QP returns:
+
+     \- code contains RECL  (RECLINE / RECLINER / RECLINING / SEATRECLINE ...)
+
+     \- value itself is descriptive ("Recliner", "Non Reclining", ...)
+
+     \- flags placed directly on the unit rather than inside properties      */
+
+  const norm = v => String(v ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+  const TRUEY = new Set(['TRUE', '1', 'Y', 'YES']);
+
+  const FALSY = new Set(['FALSE', '0', 'N', 'NO']);
+
+
+
+  const seatTypeFlags = (u) => {
+
+    let isRecliner = false, isNonReclining = false;
+
+    const props = Array.isArray(u?.properties) ? u.properties : [];
+
+
+
+    props.forEach(p => {
+
+      const code = norm(p?.code);
+
+      const name = norm(p?.name ?? p?.description);
+
+      const val = norm(p?.value);
+
+      const bucket = code + name;
+
+
+
+      // value text carries the type, e.g. value = "Recliner"
+
+      if (val.includes('NONRECLIN') || val.includes('NORECLIN')) isNonReclining = true;
+
+      else if (val.includes('RECLIN')) isRecliner = true;
+
+
+
+      if (!bucket.includes('RECLIN')) return;
+
+
+
+      if (bucket.includes('NONRECLIN') || bucket.includes('NORECLIN')) {
+
+        if (TRUEY.has(val) || val === '') isNonReclining = true;
+
+        else if (FALSY.has(val)) isRecliner = true;
+
+      } else {
+
+        if (TRUEY.has(val) || val === '') isRecliner = true;
+
+        else if (FALSY.has(val)) isNonReclining = true;
+
+      }
+
+    });
+
+
+
+    const direct = [
+
+      u?.seatType, u?.seatTypeCode, u?.seatTypeName, u?.reclineType, u?.type,
+
+      u?.reclining, u?.isReclining, u?.nonReclining, u?.isNonReclining
+
+    ].map(norm);
+
+
+
+    if (direct.some(v => v.includes('NONRECLIN') || v.includes('NORECLIN'))) isNonReclining = true;
+
+    else if (direct.some(v => v.includes('RECLIN'))) isRecliner = true;
+
+
+
+    if (norm(u?.isNonReclining) === 'TRUE' || norm(u?.nonReclining) === 'TRUE') isNonReclining = true;
+
+    if (norm(u?.isReclining) === 'TRUE' || norm(u?.reclining) === 'TRUE') isRecliner = true;
+
+
+
+    if (isNonReclining) isRecliner = false;
+
+    return { isRecliner, isNonReclining };
+
+  };
+
+
+
+  const rowMap = {};
+
+  allUnits.forEach(u => {
+
+    if (!u.designator || u.designator.startsWith('$')) return;
+
+    const m = u.designator.match(/^(\d+)([A-Z])$/); if (!m) return;
+
+    const row = +m[1], col = m[2];
+
+    if (!rowMap[row]) rowMap[row] = {};
+
+    const availabilityText = (u.availability ?? '').toString().toLowerCase();
+
+    const isOpen = availabilityText === 'open';
+
+    const st = seatTypeFlags(u);
+
+    rowMap[row][col] = {
+
+      des: u.designator,
+
+      key: u.unitKey,
+
+      avail: isOpen ? 1 : 0,
+
+      assignable: !!u.assignable && isOpen,
+
+      group: u.group ?? 0,
+
+      // Do not default an unknown premium-seat price to zero.
+      price: fees[u.group] != null ? fees[u.group] :
+        ((premiumSeatSet.has(String(u.designator).toUpperCase()) ||
+          premiumPlusSeatSet.has(String(u.designator).toUpperCase())) ? null : 0),
+      priceKnown: fees[u.group] != null ||
+        (!premiumSeatSet.has(String(u.designator).toUpperCase()) &&
+         !premiumPlusSeatSet.has(String(u.designator).toUpperCase())),
+      isPremium: premiumSeatSet.has(String(u.designator).toUpperCase()),
+      isPremiumPlus: premiumPlusSeatSet.has(String(u.designator).toUpperCase()),
+
+      isWindow: hasProp(u, 'WINDOW'),
+
+      isAisle: hasProp(u, 'AISLE'),
+
+      isLeg: hasProp(u, 'LEGROOM'),
+
+      isExit: hasProp(u, 'EXITROW'),
+
+      isDisab: hasProp(u, 'DISABIL'),
+
+      isPet: hasProp(u, 'PET'),
+
+      noChild: hasProp(u, 'NCHILD'),
+
+      isRecliner: st.isRecliner,
+
+      isNonReclining: st.isNonReclining
+
+    };
+
+  });
+
+  return { rowMap, sortedRows: Object.keys(rowMap).map(Number).sort((a, b) => a - b) };
+
+}
+
+
+
+function buildSeatDetail(info) {
+
+  if (!info) return '';
+
+  if (info.isLeg || info.isExit) return 'Extra legroom';
+
+  if (info.isWindow) return 'Window';
+
+  if (info.isAisle) return 'Aisle';
+
+  return 'Middle';
+
+}
+
+
+
+function extractPassengerNames(data) {
+
+  const list = data?.passengers ?? data?.passengerList ?? data?.passengerDetails ?? data?.passenger ?? [];
+
+  if (!Array.isArray(list)) return [];
+
+  return list.map(item => item?.name || [item?.firstName, item?.lastName].filter(Boolean).join(' ')).filter(Boolean);
+
+}
+
+
+
+/* ────────────────── RENDER (horizontal cabin) ────────────────── */
+
+const LEFT = ['A', 'B', 'C'];
+
+const RIGHT = ['D', 'E', 'F'];
+
+
+
+function renderSeatMap({ rowMap, sortedRows }) {
+
+  const root = document.getElementById('seatmap-root');
+
+  root.innerHTML = '';
+
+
+
+  const cabin = document.createElement('div');
+
+  cabin.className = 'cabin';
+
+
+
+  // column header: (gutter) A B C | D E F (gutter)
+
+  const hdr = document.createElement('div');
+
+  hdr.className = 'col-headers';
+
+  hdr.appendChild(document.createElement('div'));
+
+  LEFT.forEach(c => {
+
+    const d = document.createElement('div');
+
+    d.className = 'col-hdr'; d.textContent = c; hdr.appendChild(d);
+
+  });
+
+  const hGap = document.createElement('div');
+
+  hGap.className = 'aisle-gap';
+
+  hdr.appendChild(hGap);
+
+  RIGHT.forEach(c => {
+
+    const d = document.createElement('div');
+
+    d.className = 'col-hdr'; d.textContent = c; hdr.appendChild(d);
+
+  });
+
+  hdr.appendChild(document.createElement('div'));
+
+  cabin.appendChild(hdr);
+
+
+
+  const exitFlags = sortedRows.map(r => Object.values(rowMap[r] ?? {}).some(s => s?.isExit));
+
+
+
+  sortedRows.forEach((rowNum, idx) => {
+
+    const rowData = rowMap[rowNum] ?? {};
+
+    const rowDiv = document.createElement('div');
+
+    rowDiv.className = 'seat-row';
+
+
+
+    const isExit = exitFlags[idx];
+
+    const prevExit = idx > 0 && exitFlags[idx - 1];
+
+    const nextExit = idx < exitFlags.length - 1 && exitFlags[idx + 1];
+
+
+
+    // left gutter: exit bar, else row number
+
+    rowDiv.appendChild(isExit ? buildExitSlot(true, !prevExit, !nextExit) : buildRowNum(rowNum));
+
+
+
+    LEFT.forEach(c => rowDiv.appendChild(buildSeat(rowData[c], rowNum, c)));
+
+
+
+    const gap = document.createElement('div');
+
+    gap.className = 'aisle-gap';
+
+    rowDiv.appendChild(gap);
+
+
+
+    RIGHT.forEach(c => rowDiv.appendChild(buildSeat(rowData[c], rowNum, c)));
+
+
+
+    // right gutter: exit bar on exit rows, row number otherwise
+
+    rowDiv.appendChild(isExit ? buildExitSlot(true, !prevExit, !nextExit) : buildRowNum(rowNum));
+
+
+
+    cabin.appendChild(rowDiv);
+
+  });
+
+
+
+  root.appendChild(cabin);
+
+}
+
+
+
+function buildRowNum(rowNum) {
+
+  const d = document.createElement('div');
+
+  d.className = 'row-num';
+
+  d.textContent = rowNum;
+
+  return d;
+
+}
+
+
+
+function buildExitSlot(isExit, isStart, isEnd) {
+
+  const slot = document.createElement('div');
+
+  slot.className = 'exit-slot';
+
+  if (isExit) {
+
+    const bar = document.createElement('div');
+
+    bar.className = 'exit-bar' + (isStart ? ' start' : '') + (isEnd ? ' end' : '');
+
+    bar.textContent = 'Exit';
+
+    slot.appendChild(bar);
+
+  }
+
+  return slot;
+
+}
+
+
+
+/* Returns an array of classes: one background face + optional A+ border ring,
+
+   so an "A+ recliner" seat shows the gold ring AND the dark-red recliner fill. */
+
+function seatFaceClasses(info) {
+
+  const out = [];
+
+  if (info.isRecliner) out.push('s-recliner');
+
+  else if (info.isNonReclining) out.push('s-non-reclining');
+
+  else if (info.priceKnown !== false && Number(info.price) === 0) out.push('s-free');
+
+  else out.push('s-std');
+
+
+
+  if (info.isLeg || info.isExit) out.push('s-aplus');
+
+  return out;
+
+}
+
+
+
+function buildSeat(info, rowNum, colLetter) {
+
+  const div = document.createElement('div');
+
+  div.className = 'seat';
+
+
+
+  if (!info) { div.classList.add('s-empty'); return div; }
+
+
+
+  const occ = !info.assignable || info.avail === 0;
+
+
+
+  if (occ) {
+
+    div.classList.add('s-occ');
+
+    div.textContent = '✕';
+
+    div.title = `${info.des} — Occupied`;
+
+  } else {
+
+    div.classList.add(...seatFaceClasses(info));
+
+    div.textContent = info.priceKnown === false
+      ? 'Paid'
+      : (Number(info.price) === 0 ? 'Free' : '₹' + Number(info.price).toLocaleString('en-IN'));
+    if (info.priceKnown === false) div.title = `${info.des} — Paid seat; price unavailable from API`;
+
+  }
+
+
+
+  div.dataset.rowCol = `${rowNum}${colLetter}`;
+
+  div.dataset.price = info.price == null ? '' : info.price;
+  div.dataset.priceKnown = info.priceKnown === false ? '0' : '1';
+  div.dataset.isPremium = info.isPremium ? '1' : '0';
+  div.dataset.isPremiumPlus = info.isPremiumPlus ? '1' : '0';
+
+  div.dataset.isLeg = info.isLeg ? '1' : '0';
+
+  div.dataset.isExit = info.isExit ? '1' : '0';
+
+  div.dataset.isRecliner = info.isRecliner ? '1' : '0';
+
+  div.dataset.isNonReclining = info.isNonReclining ? '1' : '0';
+
+  div.dataset.isWindow = info.isWindow ? '1' : '0';
+
+  div.dataset.isAisle = info.isAisle ? '1' : '0';
+
+  div.dataset.occupied = occ ? '1' : '0';
+
+
+
+  if (!occ && info.priceKnown !== false) {
+    div.addEventListener('click', () => handleSeatClick(div, info, rowNum, colLetter));
+  } else if (!occ) {
+    div.classList.add('s-std');
+    div.style.cursor = 'not-allowed';
+  }
+
+
+
+  div.addEventListener('mouseenter', e => showTip(e, info, rowNum, colLetter));
+
+  div.addEventListener('mouseleave', hideTip);
+
+  div.addEventListener('mousemove', moveTip);
+
+
+
+  return div;
+
+}
+
+
+
+/* ────────────────── SELECTION ────────────────── */
+
+function flightSeats() { return perFlightSeats[currentFlightIdx]; }
+
+
+
+function isSeatTakenByOther(id, pax) {
+
+  const seats = flightSeats();
+
+  for (let i = 1; i <= numPax; i++) if (i !== pax && seats[i]?.seat === id) return true;
+
+  return false;
+
+}
+
+
+
+function handleSeatClick(div, info, rowNum, colLetter) {
+
+  if (info?.priceKnown === false || info?.price == null) {
+    alert('The price for this paid seat is not available. Please refresh the seat map or contact an agent.');
+    return;
+  }
+
+  const id = `${rowNum}${colLetter}`;
+
+  const seats = flightSeats();
+
+  if (isSeatTakenByOther(id, currentPaxId)) { alert('This seat is already selected by another passenger.'); return; }
+
+
+
+  if (seats[currentPaxId]?.seat === id) {
+
+    seats[currentPaxId] = { seat: null, fee: 0, detail: '', unitKey: null };
+
+    refreshSeatVisuals(); updateUIForFlight(); updateFlightTabs(); return;
+
+  }
+
+
+
+  seats[currentPaxId] = { seat: id, fee: info.price, detail: buildSeatDetail(info), unitKey: info.key };
+
+
+
+  const nextUnseated = Object.keys(seats).map(Number).find(p => p > currentPaxId && !seats[p]?.seat);
+
+  if (nextUnseated) currentPaxId = nextUnseated;
+
+  document.querySelectorAll('.pax-card').forEach(c => c.classList.remove('active-pax'));
+
+  document.getElementById(`pax-${currentPaxId}`)?.classList.add('active-pax');
+
+
+
+  refreshSeatVisuals(); updateUIForFlight(); updateFlightTabs();
+
+}
+
+
+
+function refreshSeatVisuals() {
+
+  const seats = flightSeats() || {};
+
+  const FACES = ['s-sel', 's-blocked', 's-std', 's-free', 's-leg', 's-aplus', 's-recliner', 's-non-reclining'];
+
+
+
+  document.querySelectorAll('.seat').forEach(seat => {
+
+    const rc = seat.dataset.rowCol;
+
+    if (!rc) return;
+
+
+
+    if (seat.dataset.occupied === '1') {
+
+      seat.classList.remove(...FACES);
+
+      seat.classList.add('s-occ');
+
+      seat.textContent = '✕';
+
+      return;
+
+    }
+
+
+
+    const mine = seats[currentPaxId]?.seat === rc;
+
+    const other = isSeatTakenByOther(rc, currentPaxId);
+
+    seat.classList.remove(...FACES);
+
+
+
+    if (mine) {
+
+      seat.classList.add('s-sel');
+
+      seat.textContent = rc;
+
+    } else if (other) {
+
+      seat.classList.add('s-blocked');
+
+      seat.textContent = '✕';
+
+    } else {
+
+      seat.classList.add(...seatFaceClasses({
+
+        isLeg: seat.dataset.isLeg === '1',
+
+        isExit: seat.dataset.isExit === '1',
+
+        isRecliner: seat.dataset.isRecliner === '1',
+
+        isNonReclining: seat.dataset.isNonReclining === '1',
+
+        priceKnown: seat.dataset.priceKnown !== '0',
+        price: seat.dataset.price === '' ? null : Number(seat.dataset.price)
+
+      }));
+
+      if (seat.dataset.priceKnown === '0') {
+        seat.textContent = 'Paid';
+      } else {
+        const seatPrice = Number(seat.dataset.price || 0);
+        seat.textContent = seatPrice === 0 ? 'Free' : '₹' + seatPrice.toLocaleString('en-IN');
+      }
+
+    }
+
+  });
+
+}
+
+
+
+/* ────────────────── TOOLTIP ────────────────── */
+
+const tip = document.getElementById('tooltip');
+
+function showTip(e, info, r, c) {
+
+  const lines = [`Row ${r}, Seat ${c}`];
+
+  if (info.isWindow) lines.push('Window');
+
+  if (info.isAisle) lines.push('Aisle');
+
+  if (info.isLeg) lines.push('Extra legroom');
+
+  if (info.isExit) lines.push('Exit row');
+
+  if (info.isRecliner) lines.push('Recliner');
+
+  if (info.isNonReclining) lines.push('Non-reclining');
+
+  if (info.isPet) lines.push('Pet-friendly zone');
+
+  if (info.noChild) lines.push('No children');
+
+  if (info.isDisab) lines.push('Accessibility seat');
+
+  if (isPreferredSeat(info, currentPaxId)) lines.push('Preferred seat');
+
+  lines.push(info.avail === 0 ? 'Occupied' :
+    (info.priceKnown === false ? 'Paid seat — price unavailable' :
+      'Price: ' + (Number(info.price) === 0 ? 'Free' : '₹' + info.price)));
+
+  tip.innerHTML = lines.join('<br>'); tip.style.display = 'block'; moveTip(e);
+
+}
+
+function moveTip(e) { tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 14) + 'px'; }
+
+function hideTip() { tip.style.display = 'none'; }
+
+
+
+/* ────────────────── SUBMIT ────────────────── */
+
+function buildSeatSelectionPayload() {
+
+  const selectedItems = [];
+
+  perFlightSeats.forEach((flightSeats, fi) => {
+
+    const journeyKey = allParsedMaps[fi]?.journeyKey || journeyKeys[fi] || journeyKeys[0] || '';
+
+    Object.entries(flightSeats || {}).forEach(([pid, seatInfo]) => {
+
+      if (!seatInfo || !seatInfo.seat || !seatInfo.unitKey) return;
+
+      const passengerKey = passengerKeys[Number(pid) - 1] || '';
+
+      if (!journeyKey || !passengerKey) return;
+
+      selectedItems.push(`${journeyKey}|${passengerKey}|${seatInfo.unitKey}`);
+
+    });
+
+  });
+
+  return selectedItems.join(';');
+
+}
+
+
+
+function getSelectedSeatAmount() {
+
+  let totalFee = 0;
+
+  perFlightSeats.forEach(flightSeats => {
+
+    Object.values(flightSeats || {}).forEach(seatInfo => { totalFee += Number(seatInfo?.fee || 0); });
+
+  });
+
+  return totalFee;
+
+}
+
+
+
+function sendSeatSelectionToBot(payload) {
+
+  const parts = [];
+
+  if (pnr) parts.push(`pnr=${encodeURIComponent(pnr)}`);
+
+  const seatAmount = getSelectedSeatAmount();
+
+  parts.push(
+
+    `journey_keys=${encodeURIComponent(journeyKeys.join(','))}`,
+
+    `passenger_keys=${encodeURIComponent(passengerKeys.join(','))}`,
+
+    `selected_seats=${encodeURIComponent(payload)}`,
+
+    `seat_amount=${encodeURIComponent(seatAmount)}`,
+
+    `seat_currency=${encodeURIComponent(currencyCode)}`
+
+  );
+
+  const data = parts.join('||');
+
+  const encoded = encodeURIComponent(data.split(',').join(';;').split('&').join('^%'));
+
+  const text = `Seats are selected{always execute function \`seat_selection\`,data:${encoded}}`;
+
+
+
+  if (window.parent && window.parent !== window) {
+
+    window.parent.postMessage(`http://haptik-webview//perform-action?action=close&message=${text}&message_type=0`, '*');
+
+  } else {
+
+    console.log('Seat selection payload:', { payload, seatAmount, currency: currencyCode });
+
+  }
+
+}
+
+
+
+function confirmSeat() {
+
+  const payload = buildSeatSelectionPayload();
+
+  if (!payload) { alert('Please select seats for passengers.'); return; }
+
+  const btn = document.getElementById('confirm-btn');
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+
+  setTimeout(() => sendSeatSelectionToBot(payload), 500);
+
+}
+
+
+
+function resolveJourneyKeyForFlight(fd, fi) {
+
+  const availability = fd?.seatMapAvailability ?? fd;
+  const root = availability?.seatMap ?? availability;
+
+  const seg = (root?.segments ?? root?.legs ?? root?.journeys ?? [])[0] || {};
+
+  const from = (seg.departureStation || seg.origin || seg.from || '').toUpperCase();
+
+  const to = (seg.arrivalStation || seg.destination || seg.to || '').toUpperCase();
+
+  const match = segmentMap.find(m =>
+
+    (m.origin || '').toUpperCase() === from && (m.destination || '').toUpperCase() === to
+
+  );
+
+  if (match) return match.journeyKey;
+
+  return journeyKeys[fi] || journeyKeys[0] || '';
+
+}
+
+
+
+function init() {
+
+  apiBaseUrl = getQueryParam('base_url') || '';
+
+  authToken = getQueryParam('auth_token') || '';
+
+  qpApiKey = getQueryParam('qp_bot_api_key') || '';
+
+  qpSource = getQueryParam('qp_bot_source') || 'CHATBOTWEB';
+
+  journeyKeys = (getQueryParam('journey_keys') || '').split(',').filter(Boolean);
+
+  passengerKeys = (getQueryParam('passenger_keys') || '').split(',').filter(Boolean);
+
+  customerNumber = getQueryParam('customer_number') || '';
+
+  pnr = getQueryParam('pnr') || getQueryParam('record_locator') || '';
+
+  try { segmentMap = JSON.parse(getQueryParam('segment_map') || '[]'); } catch (e) { segmentMap = []; }
+
+
+
+  tripSummary = getQueryParam('trip_summary') || '';
+
+  const amountStr = getQueryParam('total_amount');
+
+  totalAmount = amountStr ? parseFloat(amountStr) : 0;
+
+  currencyCode = getQueryParam('currency') || 'INR';
+
+
+
+  if (apiBaseUrl && authToken) {
+
+    loadAndRenderFromApi();
+
+  } else {
+
+    showError('<strong>⚠ Missing booking context</strong> The bot did not provide the required auth token and API base URL.');
+
+  }
+
+}
+
+
+
+init();
+
+</script>
+
+</body>
+
+</html>
