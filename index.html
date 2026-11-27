@@ -1783,7 +1783,7 @@ function resolveJourneyKeyForFlight(fd, fi) {
 
 function init() {
 
-  apiBaseUrl = getQueryParam('base_url') || '';
+  apiBaseUrl = ''; // calls go through the vercel.json rewrite (no Origin/Referer)
 
   authToken = getQueryParam('auth_token') || '';
 
@@ -1813,7 +1813,7 @@ function init() {
 
 
 
-  if (apiBaseUrl && authToken) {
+  if (authToken) {
 
     loadAndRenderFromApi();
 
