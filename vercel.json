@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/ibe/:path*",
+      "destination": "https://staging-agents-relay-uat.qp.akasaair.com/bgws/api/ibe/:path*"
+    }
+  ]
+}
